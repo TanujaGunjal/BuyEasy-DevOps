@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # ── Backend (Node.js / Express) ──────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: buyeasy-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRE=${JWT_EXPIRE}
+      - CLIENT_URL=http://localhost:3000
+    volumes:
+      # Persist uploaded files outside the container
+      - uploads_data:/app/uploads
+    networks:
+      - buyeasy-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Frontend (React → Nginx) ──────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: buyeasy-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"          # Map container port 80 → host port 3000
+    depends_on:
+      backend:
+        condition: service_healthy   # Wait until backend passes health-check
+    networks:
+      - buyeasy-network
+
+# ── Shared Network ───────────────────────────────────────────────────────────
+networks:
+  buyeasy-network:
+    driver: bridge
+
+# ── Named Volumes ─────────────────────────────────────────────────────────────
+volumes:
+  uploads_data:
