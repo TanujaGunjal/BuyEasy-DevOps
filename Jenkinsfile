@@ -1,91 +1,97 @@
 pipeline {
-    agent any
+    agent none   // no global agent (we use different environments per stage)
 
-    // ── Environment variables available in every stage ──────────────────────
     environment {
         IMAGE_BACKEND  = 'buyeasy-backend'
         IMAGE_FRONTEND = 'buyeasy-frontend'
-        APP_PORT_BACK  = '5000'
-        APP_PORT_FRONT = '3000'
     }
 
     stages {
 
-        // ── Stage 1: Install Dependencies ─────────────────────────────────
+        // ─────────────────────────────────────────────
+        // Install dependencies using Node container
+        // ─────────────────────────────────────────────
         stage('Install Dependencies') {
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                }
+            }
             steps {
-                echo '📦 Installing backend dependencies...'
+                echo '📦 Installing dependencies...'
                 dir('backend') {
                     sh 'npm install'
                 }
-                echo '📦 Installing frontend dependencies...'
                 dir('frontend') {
                     sh 'npm install'
                 }
             }
         }
 
-        // ── Stage 2: Run Tests (Jest + Supertest) ─────────────────────────
+        // ─────────────────────────────────────────────
+        // Run tests (Jest + Supertest)
+        // ─────────────────────────────────────────────
         stage('Run Tests') {
-            steps {
-                echo '🧪 Running backend tests with Jest...'
-                dir('backend') {
-                    // --forceExit closes the process even if DB mock keeps it alive
-                    sh 'npx jest --forceExit --detectOpenHandles --coverage'
+            agent {
+                docker {
+                    image 'node:18-alpine'
                 }
             }
-            post {
-                failure {
-                    echo '❌ Tests FAILED – pipeline will not build Docker image.'
-                }
-                success {
-                    echo '✅ All tests PASSED!'
+            steps {
+                echo '🧪 Running backend tests...'
+                dir('backend') {
+                    sh 'npm install'
+                    sh 'npx jest --forceExit --detectOpenHandles'
                 }
             }
         }
 
-        // ── Stage 3: Build Docker Images ──────────────────────────────────
+        // ─────────────────────────────────────────────
+        // Build Docker images (runs on Jenkins host)
+        // ─────────────────────────────────────────────
         stage('Build Docker Images') {
+            agent any
             steps {
-                echo '🐳 Building backend Docker image...'
+                echo '🐳 Building backend image...'
                 sh "docker build -t ${IMAGE_BACKEND}:latest ./backend"
 
-                echo '🐳 Building frontend Docker image...'
+                echo '🐳 Building frontend image...'
                 sh "docker build -t ${IMAGE_FRONTEND}:latest ./frontend"
             }
         }
 
-        // ── Stage 4: Run Containers (docker-compose) ──────────────────────
+        // ─────────────────────────────────────────────
+        // Run containers
+        // ─────────────────────────────────────────────
         stage('Run Containers') {
+            agent any
             steps {
-                echo '🚀 Stopping any existing containers...'
+                echo '🚀 Starting containers...'
                 sh 'docker-compose down --remove-orphans || true'
-
-                echo '🚀 Starting all services with docker-compose...'
-                sh 'docker-compose up -d --build'
-
-                echo '🔍 Verifying containers are running...'
+                sh 'docker-compose up -d'
                 sh 'docker ps'
             }
         }
     }
 
-    // ── Post-Pipeline Notifications ──────────────────────────────────────────
+    // ─────────────────────────────────────────────
+    // Post actions
+    // ─────────────────────────────────────────────
     post {
         success {
             echo '''
-            ╔════════════════════════════════════════╗
-            ║  ✅  PIPELINE SUCCEEDED                ║
-            ║  Frontend → http://localhost:3000      ║
-            ║  Backend  → http://localhost:5000      ║
-            ╚════════════════════════════════════════╝
+            ╔══════════════════════════════════════╗
+            ║   ✅ PIPELINE SUCCESSFUL             ║
+            ║   Frontend: http://localhost:3000   ║
+            ║   Backend:  http://localhost:5000   ║
+            ╚══════════════════════════════════════╝
             '''
         }
         failure {
-            echo '❌ Pipeline FAILED. Check the logs above for details.'
+            echo '❌ PIPELINE FAILED — check console output.'
         }
         always {
-            echo '🧹 Pipeline finished. Check console output for results.'
+            echo '🧹 Pipeline finished.'
         }
     }
 }
