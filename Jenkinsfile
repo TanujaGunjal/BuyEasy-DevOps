@@ -63,15 +63,15 @@ pipeline {
         // ─────────────────────────────────────────────
         // Run containers
         // ─────────────────────────────────────────────
-        stage('Run Containers') {
-            agent any
-            steps {
-                echo '🚀 Starting containers...'
-                sh 'docker-compose down --remove-orphans || true'
-                sh 'docker-compose up -d'
-                sh 'docker ps'
-            }
-        }
+stage('Run Containers') {
+    agent any
+    steps {
+        echo '🚀 Starting containers...'
+        sh 'docker compose down --remove-orphans || true'
+        sh 'docker compose up -d'
+        sh 'docker ps'
+    }
+}
     }
 
     // ─────────────────────────────────────────────
