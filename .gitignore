@@ -10,3 +10,5 @@ coverage/
 *.pem
 .env.local
 .env.production
+backend/.env
+frontend/.env

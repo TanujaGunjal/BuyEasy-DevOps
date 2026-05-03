@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import { formatPrice, formatSubtotal } from '../utils/priceFormatter';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -57,13 +58,13 @@ const Orders = () => {
                   {order.orderItems.map((item, index) => (
                     <div key={index} className="order-item">
                       <span>{item.name} x {item.quantity}</span>
-                      <span>${(item.price * item.quantity).toFixed(2)}</span>
+                      <span>{formatSubtotal(item.price, item.quantity)}</span>
                     </div>
                   ))}
                 </div>
                 <div className="order-footer">
                   <div className="order-total">
-                    <strong>Total: ${order.totalPrice.toFixed(2)}</strong>
+                    <strong>Total: {formatPrice(order.totalPrice)}</strong>
                   </div>
                   <Link to={`/orders/${order._id}`} className="btn btn-primary btn-sm">
                     View Details

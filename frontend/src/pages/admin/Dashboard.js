@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaBox, FaShoppingBag, FaUsers, FaDollarSign } from 'react-icons/fa';
 import api from '../../services/api';
+import { formatPrice } from '../../utils/priceFormatter';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -65,7 +66,7 @@ const AdminDashboard = () => {
           </div>
           <div className="card stat-card">
             <FaDollarSign size={40} color="#EF4444" />
-            <h3>${stats.totalRevenue.toFixed(2)}</h3>
+            <h3>{formatPrice(stats.totalRevenue)}</h3>
             <p>Total Revenue</p>
           </div>
         </div>

@@ -1,4 +1,5 @@
 const Product = require('../models/Product');
+const Cart = require('../models/Cart');
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -124,14 +125,52 @@ exports.updateProduct = async (req, res, next) => {
       });
     }
 
-    product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    // Validate price if being updated
+    if (req.body.price !== undefined) {
+      if (req.body.price < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Price cannot be negative',
+        });
+      }
+
+      // Store old price for alert reset logic
+      const oldPrice = product.price;
+      const newPrice = req.body.price;
+
+      // Update product
+      product = await Product.findByIdAndUpdate(req.params.id, req.body, {
+        new: true,
+        runValidators: true,
+      });
+
+      // If price changed, reset alertSent for all carts with this product
+      // so the cron job can re-trigger alerts
+      if (oldPrice !== newPrice) {
+        await Cart.updateMany(
+          { 'items.product': req.params.id, 'items.targetPrice': { $ne: null } },
+          {
+            $set: { 'items.$[elem].alertSent': false },
+          },
+          {
+            arrayFilters: [{ 'elem.product': req.params.id, 'elem.targetPrice': { $ne: null } }],
+          }
+        );
+
+        console.log(`✅ Price alert reset for product ${product.name}: $${oldPrice} → $${newPrice}`);
+      }
+    } else {
+      // Update without price validation
+      product = await Product.findByIdAndUpdate(req.params.id, req.body, {
+        new: true,
+        runValidators: true,
+      });
+    }
 
     res.status(200).json({
       success: true,
       data: product,
+      message: 'Product updated successfully',
     });
   } catch (error) {
     next(error);

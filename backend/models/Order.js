@@ -127,10 +127,9 @@ const OrderSchema = new mongoose.Schema({
   },
 });
 
-// Update the updatedAt field on save
-OrderSchema.pre('save', function (next) {
+// Update the updatedAt field on save (Mongoose 9+: async, no next())
+OrderSchema.pre('save', async function () {
   this.updatedAt = Date.now();
-  next();
 });
 
 module.exports = mongoose.model('Order', OrderSchema);

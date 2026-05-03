@@ -111,10 +111,9 @@ category: {
   },
 });
 
-// Update the updatedAt field on save
-ProductSchema.pre('save', function (next) {
+// Update the updatedAt field on save (Mongoose 9+: async, no next())
+ProductSchema.pre('save', async function () {
   this.updatedAt = Date.now();
-  next();
 });
 
 // Create index for text search

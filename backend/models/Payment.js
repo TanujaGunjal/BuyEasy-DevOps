@@ -118,13 +118,12 @@ PaymentSchema.methods.refund = async function(amount, reason) {
   return await this.save();
 };
 
-// Generate payment ID before saving
-PaymentSchema.pre('save', function(next) {
+// Generate payment ID before saving (Mongoose 9+: async, no next())
+PaymentSchema.pre('save', async function() {
   if (!this.paymentId) {
     this.paymentId = `PAY${Date.now()}${Math.floor(Math.random() * 1000)}`;
   }
   this.updatedAt = Date.now();
-  next();
 });
 
 module.exports = mongoose.model('Payment', PaymentSchema);

@@ -9,7 +9,8 @@ exports.getCart = async (req, res, next) => {
     let cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
 
     if (!cart) {
-      cart = await Cart.create({ user: req.user.id, items: [] });
+      cart = new Cart({ user: req.user.id, items: [] });
+      await cart.save();
     }
 
     res.status(200).json({
@@ -48,7 +49,8 @@ exports.addToCart = async (req, res, next) => {
     let cart = await Cart.findOne({ user: req.user.id });
 
     if (!cart) {
-      cart = await Cart.create({ user: req.user.id, items: [] });
+      cart = new Cart({ user: req.user.id, items: [] });
+      await cart.save();
     }
 
     // Check if product already in cart
@@ -176,6 +178,117 @@ exports.clearCart = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
+      data: cart,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Set price alert for cart item
+// @route   PUT /api/cart/:productId/alert
+// @access  Private
+exports.setPriceAlert = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const { targetPrice } = req.body;
+
+    console.log(`🔔 setPriceAlert called - productId: ${productId}, targetPrice: ${targetPrice}, userId: ${req.user.id}`);
+
+    // Validate targetPrice
+    if (!targetPrice || targetPrice <= 0) {
+      console.log(`❌ Invalid targetPrice: ${targetPrice}`);
+      return res.status(400).json({
+        success: false,
+        message: 'Valid target price is required',
+      });
+    }
+
+    let cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
+    console.log(`📦 Cart found: ${cart ? 'YES' : 'NO'}, items: ${cart?.items?.length || 0}`);
+
+    if (!cart) {
+      return res.status(404).json({
+        success: false,
+        message: 'Cart not found',
+      });
+    }
+
+    // Find the product in cart
+    const cartItem = cart.items.find(
+      item => item.product._id.toString() === productId
+    );
+
+    if (!cartItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found in cart',
+      });
+    }
+
+    // Check if target price is less than current price
+    if (targetPrice >= cartItem.product.price) {
+      return res.status(400).json({
+        success: false,
+        message: 'Target price must be less than current price',
+      });
+    }
+
+    // Set price alert
+    cartItem.targetPrice = targetPrice;
+    cartItem.alertSent = false;
+
+    await cart.save();
+    await cart.populate('items.product');
+
+    res.status(200).json({
+      success: true,
+      message: 'Price alert set successfully',
+      data: cart,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Remove price alert from cart item
+// @route   DELETE /api/cart/:productId/alert
+// @access  Private
+exports.removePriceAlert = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+
+    let cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
+
+    if (!cart) {
+      return res.status(404).json({
+        success: false,
+        message: 'Cart not found',
+      });
+    }
+
+    // Find the product in cart
+    const cartItem = cart.items.find(
+      item => item.product._id.toString() === productId
+    );
+
+    if (!cartItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found in cart',
+      });
+    }
+
+    // Remove price alert
+    cartItem.targetPrice = null;
+    cartItem.alertSent = false;
+
+    await cart.save();
+    await cart.populate('items.product');
+
+    res.status(200).json({
+      success: true,
+      message: 'Price alert removed',
       data: cart,
     });
   } catch (error) {

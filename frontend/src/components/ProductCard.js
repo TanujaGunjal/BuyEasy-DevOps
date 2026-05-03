@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaStar, FaStarHalfAlt, FaRegStar } from 'react-icons/fa';
+import { formatPrice } from '../utils/priceFormatter';
 import './ProductCard.css';
 
 const ProductCard = ({ product }) => {
@@ -45,7 +46,7 @@ const ProductCard = ({ product }) => {
 
     <div className="product-content">
       <h3>{product.name}</h3>
-      <p className="price">${product.price.toFixed(2)}</p>
+      <p className="price">{formatPrice(product.price)}</p>
 
       <button className="view-btn">View Product</button>
     </div>

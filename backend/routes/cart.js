@@ -5,6 +5,8 @@ const {
   updateCartItem,
   removeFromCart,
   clearCart,
+  setPriceAlert,
+  removePriceAlert,
 } = require('../controllers/cartController');
 const { protect } = require('../middleware/auth');
 
@@ -18,5 +20,9 @@ router.route('/')
 router.route('/:itemId')
   .put(protect, updateCartItem)
   .delete(protect, removeFromCart);
+
+// Price alert routes
+router.put('/:productId/alert', protect, setPriceAlert);
+router.delete('/:productId/alert', protect, removePriceAlert);
 
 module.exports = router;

@@ -1,15 +1,13 @@
 # ─── Stage 1: Build ───────────────────────────────────────────────────────────
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy everything first
-COPY . .
-
-# Now package.json exists, so install works
+COPY backend/package*.json ./
 RUN npm install --omit=dev
+COPY backend/ .
 
 # ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
-FROM node:18-alpine
+FROM node:20-alpine
 WORKDIR /app
 COPY --from=builder /app .
 EXPOSE 5000

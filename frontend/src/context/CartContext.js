@@ -89,6 +89,32 @@ export const CartProvider = ({ children }) => {
     }
   };
 
+  const setPriceAlert = async (productId, targetPrice) => {
+    try {
+      const response = await api.put(`/cart/${productId}/alert`, { targetPrice });
+      setCart(response.data.data);
+      return { success: true, message: 'Price alert set successfully' };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to set price alert',
+      };
+    }
+  };
+
+  const removePriceAlert = async (productId) => {
+    try {
+      const response = await api.delete(`/cart/${productId}/alert`);
+      setCart(response.data.data);
+      return { success: true, message: 'Price alert removed' };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to remove price alert',
+      };
+    }
+  };
+
   const value = {
     cart,
     loading,
@@ -96,6 +122,8 @@ export const CartProvider = ({ children }) => {
     updateCartItem,
     removeFromCart,
     clearCart,
+    setPriceAlert,
+    removePriceAlert,
     refreshCart: loadCart,
   };
 

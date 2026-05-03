@@ -95,13 +95,12 @@ DeliverySchema.methods.confirmDelivery = async function(signature) {
   return await this.save();
 };
 
-// Generate tracking number before saving
-DeliverySchema.pre('save', function(next) {
+// Generate tracking number before saving (Mongoose 9+: async, no next())
+DeliverySchema.pre('save', async function() {
   if (!this.trackingNumber) {
     this.trackingNumber = `TRK${Date.now()}${Math.floor(Math.random() * 1000)}`;
   }
   this.updatedAt = Date.now();
-  next();
 });
 
 module.exports = mongoose.model('Delivery', DeliverySchema);

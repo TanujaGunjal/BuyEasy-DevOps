@@ -4,6 +4,7 @@ import { FaStar, FaShoppingCart } from 'react-icons/fa';
 import api from '../services/api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { formatPrice } from '../utils/priceFormatter';
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -98,7 +99,7 @@ const ProductDetails = () => {
             </div>
 
             <h2 className="product-price" style={{ fontSize: '2.5rem', marginBottom: '20px' }}>
-              ${product.price.toFixed(2)}
+              {formatPrice(product.price)}
             </h2>
 
             <p className="mb-2">{product.description}</p>

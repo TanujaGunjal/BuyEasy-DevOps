@@ -16,6 +16,14 @@ const CartItemSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  targetPrice: {
+    type: Number,
+    default: null,  // null = no price alert set
+  },
+  alertSent: {
+    type: Boolean,
+    default: false,  // prevents duplicate emails
+  },
   addedAt: {
     type: Date,
     default: Date.now,
@@ -45,11 +53,16 @@ const CartSchema = new mongoose.Schema({
 });
 
 // Update totals and updatedAt before saving
-CartSchema.pre('save', function (next) {
-  this.totalItems = this.items.reduce((total, item) => total + item.quantity, 0);
-  this.totalPrice = this.items.reduce((total, item) => total + (item.price * item.quantity), 0);
-  this.updatedAt = Date.now();
-  next();
+// Mongoose 9+: async hooks are promise-based, do NOT use next()
+CartSchema.pre('save', async function() {
+  if (this.items && Array.isArray(this.items)) {
+    this.totalItems = this.items.reduce((total, item) => total + (item.quantity || 0), 0);
+    this.totalPrice = this.items.reduce((total, item) => total + ((item.price || 0) * (item.quantity || 0)), 0);
+  } else {
+    this.totalItems = 0;
+    this.totalPrice = 0;
+  }
+  this.updatedAt = new Date();
 });
 
 module.exports = mongoose.model('Cart', CartSchema);

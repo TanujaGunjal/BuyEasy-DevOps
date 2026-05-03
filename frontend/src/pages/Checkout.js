@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { formatPrice, formatSubtotal } from '../utils/priceFormatter';
 
 const Checkout = () => {
   const { cart } = useCart();
@@ -204,26 +205,26 @@ const Checkout = () => {
                 {cart.items.map((item) => (
                   <div key={item._id} className="order-item">
                     <span>{item.product.name} x {item.quantity}</span>
-                    <span>${(item.price * item.quantity).toFixed(2)}</span>
+                    <span>{formatSubtotal(item.price, item.quantity)}</span>
                   </div>
                 ))}
               </div>
               <div className="summary-row">
                 <span>Subtotal:</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>{formatPrice(subtotal)}</span>
               </div>
               <div className="summary-row">
                 <span>Shipping:</span>
-                <span>${shippingPrice.toFixed(2)}</span>
+                <span>{formatPrice(shippingPrice)}</span>
               </div>
               <div className="summary-row">
                 <span>Tax:</span>
-                <span>${taxPrice.toFixed(2)}</span>
+                <span>{formatPrice(taxPrice)}</span>
               </div>
               <hr />
               <div className="summary-row total">
                 <strong>Total:</strong>
-                <strong>${totalPrice.toFixed(2)}</strong>
+                <strong>{formatPrice(totalPrice)}</strong>
               </div>
             </div>
           </div>

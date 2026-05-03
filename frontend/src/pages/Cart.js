@@ -1,13 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaTrash, FaShoppingCart } from 'react-icons/fa';
+import { FaTrash, FaShoppingCart, FaBell, FaTimes } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
+import { formatPrice, formatSubtotal } from '../utils/priceFormatter';
 
 const Cart = () => {
   const { cart, updateCartItem, removeFromCart, loading } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  
+  // Price alert state
+  const [alertState, setAlertState] = useState({});
+  const [settingAlert, setSettingAlert] = useState(null);
+  const [alertMessage, setAlertMessage] = useState('');
 
   const handleQuantityChange = async (itemId, newQuantity) => {
     if (newQuantity < 1) return;
@@ -25,6 +32,53 @@ const Cart = () => {
       navigate('/login');
     } else {
       navigate('/checkout');
+    }
+  };
+
+  // Set price alert
+  const handleSetPriceAlert = async (productId, currentPrice) => {
+    const targetPrice = alertState[productId];
+
+    if (!targetPrice || targetPrice <= 0) {
+      setAlertMessage('Please enter a valid price');
+      return;
+    }
+
+    if (targetPrice >= currentPrice) {
+      setAlertMessage('Target price must be less than current price');
+      return;
+    }
+
+    try {
+      setSettingAlert(productId);
+      await api.put(`/cart/${productId}/alert`, { targetPrice: parseFloat(targetPrice) });
+      
+      setAlertMessage(`✅ Price alert set! You'll be notified when price drops to ${formatPrice(targetPrice)}`);
+      setAlertState({ ...alertState, [productId]: '' });
+      
+      // Refresh cart to show updated alert status
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      setAlertMessage(`❌ Error: ${error.response?.data?.message || 'Failed to set alert'}`);
+    } finally {
+      setSettingAlert(null);
+    }
+  };
+
+  // Remove price alert
+  const handleRemovePriceAlert = async (productId) => {
+    try {
+      await api.delete(`/cart/${productId}/alert`);
+      setAlertMessage('✅ Price alert removed');
+      
+      // Refresh cart
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      setAlertMessage(`❌ Error: ${error.response?.data?.message || 'Failed to remove alert'}`);
     }
   };
 
@@ -52,6 +106,13 @@ const Cart = () => {
       <div className="container">
         <h1 className="mb-2">Shopping Cart</h1>
 
+        {/* Alert Message */}
+        {alertMessage && (
+          <div className={`alert-banner ${alertMessage.includes('✅') ? 'success' : 'error'}`}>
+            {alertMessage}
+          </div>
+        )}
+
         <div className="cart-grid">
           <div className="cart-items">
             {cart.items.map((item) => (
@@ -70,7 +131,7 @@ const Cart = () => {
                   />
                   <div className="cart-item-details">
                     <h3>{item.product.name}</h3>
-                    <p className="product-price">${item.price.toFixed(2)}</p>
+                    <p className="product-price">{formatPrice(item.price)}</p>
                     <div className="quantity-controls">
                       <button
                         className="btn btn-sm btn-secondary"
@@ -87,10 +148,48 @@ const Cart = () => {
                         +
                       </button>
                     </div>
+
+                    {/* Price Alert Section */}
+                    <div className="price-alert-section">
+                      {item.targetPrice ? (
+                        <div className="alert-active">
+                          <FaBell className="bell-icon" />
+                          <span>Alert set at {formatPrice(item.targetPrice)}</span>
+                          <button
+                            className="btn btn-sm btn-link remove-alert"
+                            onClick={() => handleRemovePriceAlert(item.product._id)}
+                            title="Remove alert"
+                          >
+                            <FaTimes />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="alert-input-group">
+                          <input
+                            type="number"
+                            placeholder="Target price"
+                            className="price-input"
+                            value={alertState[item.product._id] || ''}
+                            onChange={(e) => 
+                              setAlertState({ ...alertState, [item.product._id]: e.target.value })
+                            }
+                            step="0.01"
+                            min="0"
+                          />
+                          <button
+                            className="btn btn-sm btn-success"
+                            onClick={() => handleSetPriceAlert(item.product._id, item.price)}
+                            disabled={settingAlert === item.product._id}
+                          >
+                            {settingAlert === item.product._id ? 'Setting...' : 'Set Alert'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="cart-item-actions">
                     <p className="item-total">
-                      ${(item.price * item.quantity).toFixed(2)}
+                      {formatSubtotal(item.price, item.quantity)}
                     </p>
                     <button
                       className="btn btn-danger btn-sm"
@@ -108,21 +207,21 @@ const Cart = () => {
             <h3>Order Summary</h3>
             <div className="summary-row">
               <span>Items ({cart.totalItems}):</span>
-              <span>${cart.totalPrice.toFixed(2)}</span>
+              <span>{formatPrice(cart.totalPrice)}</span>
             </div>
             <div className="summary-row">
               <span>Shipping:</span>
-              <span>${cart.totalPrice > 50 ? '0.00' : '9.99'}</span>
+              <span>{formatPrice(cart.totalPrice > 50 ? 0 : 9.99)}</span>
             </div>
             <div className="summary-row">
               <span>Tax (10%):</span>
-              <span>${(cart.totalPrice * 0.1).toFixed(2)}</span>
+              <span>{formatPrice(cart.totalPrice * 0.1)}</span>
             </div>
             <hr />
             <div className="summary-row total">
               <strong>Total:</strong>
               <strong>
-                ${(cart.totalPrice + (cart.totalPrice > 50 ? 0 : 9.99) + cart.totalPrice * 0.1).toFixed(2)}
+                {formatPrice(cart.totalPrice + (cart.totalPrice > 50 ? 0 : 9.99) + cart.totalPrice * 0.1)}
               </strong>
             </div>
             <button
@@ -150,10 +249,99 @@ const Cart = () => {
           gap: 20px;
         }
 
+        .alert-banner {
+          padding: 15px 20px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          font-weight: 500;
+          animation: slideIn 0.3s ease-in-out;
+        }
+
+        .alert-banner.success {
+          background-color: #d4edda;
+          color: #155724;
+          border: 1px solid #c3e6cb;
+        }
+
+        .alert-banner.error {
+          background-color: #f8d7da;
+          color: #721c24;
+          border: 1px solid #f5c6cb;
+        }
+
+        @keyframes slideIn {
+          from {
+            transform: translateY(-20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        .price-alert-section {
+          margin-top: 12px;
+          padding-top: 12px;
+          border-top: 1px solid #e0e0e0;
+        }
+
+        .alert-active {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          background-color: #e8f5e9;
+          border-left: 4px solid #4caf50;
+          border-radius: 4px;
+          color: #2e7d32;
+          font-size: 0.9rem;
+          font-weight: 500;
+        }
+
+        .bell-icon {
+          color: #ffd700;
+          font-size: 1rem;
+        }
+
+        .remove-alert {
+          margin-left: auto;
+          background: none;
+          border: none;
+          color: #d32f2f;
+          cursor: pointer;
+          padding: 0;
+          font-size: 1rem;
+        }
+
+        .remove-alert:hover {
+          color: #b71c1c;
+        }
+
+        .alert-input-group {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .price-input {
+          flex: 1;
+          padding: 8px 12px;
+          border: 1px solid #d0d0d0;
+          border-radius: 4px;
+          font-size: 0.9rem;
+          outline: none;
+        }
+
+        .price-input:focus {
+          border-color: #1D9E75;
+          box-shadow: 0 0 4px rgba(29, 158, 117, 0.2);
+        }
+
         .cart-item-content {
           display: flex;
           gap: 20px;
-          align-items: center;
+          align-items: flex-start;
         }
 
         .cart-item-image {
@@ -161,6 +349,7 @@ const Cart = () => {
           height: 100px;
           object-fit: cover;
           border-radius: 8px;
+          flex-shrink: 0;
         }
 
         .cart-item-details {
@@ -188,6 +377,7 @@ const Cart = () => {
 
         .cart-item-actions {
           text-align: right;
+          flex-shrink: 0;
         }
 
         .item-total {
@@ -200,12 +390,13 @@ const Cart = () => {
         .summary-row {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 15px;
+          margin-bottom: 12px;
+          font-size: 0.95rem;
         }
 
         .summary-row.total {
-          font-size: 1.3rem;
-          color: var(--primary-color);
+          font-size: 1.1rem;
+          font-weight: bold;
         }
 
         @media (max-width: 768px) {
@@ -215,7 +406,24 @@ const Cart = () => {
 
           .cart-item-content {
             flex-direction: column;
-            text-align: center;
+            align-items: center;
+          }
+
+          .cart-item-image {
+            width: 150px;
+            height: 150px;
+          }
+
+          .cart-item-details {
+            width: 100%;
+          }
+
+          .alert-input-group {
+            flex-direction: column;
+          }
+
+          .price-input {
+            width: 100%;
           }
         }
       `}</style>

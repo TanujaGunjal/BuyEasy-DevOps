@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
+import { formatPrice, formatSubtotal } from '../utils/priceFormatter';
 
 const OrderDetails = () => {
   const { id } = useParams();
@@ -67,7 +68,7 @@ const OrderDetails = () => {
                     <p>Quantity: {item.quantity}</p>
                   </div>
                   <div>
-                    <strong>${(item.price * item.quantity).toFixed(2)}</strong>
+                    <strong>{formatSubtotal(item.price, item.quantity)}</strong>
                   </div>
                 </div>
               ))}
@@ -79,20 +80,20 @@ const OrderDetails = () => {
               <h3>Order Summary</h3>
               <div className="summary-row">
                 <span>Items Price:</span>
-                <span>${order.itemsPrice.toFixed(2)}</span>
+                <span>{formatPrice(order.itemsPrice)}</span>
               </div>
               <div className="summary-row">
                 <span>Shipping:</span>
-                <span>${order.shippingPrice.toFixed(2)}</span>
+                <span>{formatPrice(order.shippingPrice)}</span>
               </div>
               <div className="summary-row">
                 <span>Tax:</span>
-                <span>${order.taxPrice.toFixed(2)}</span>
+                <span>{formatPrice(order.taxPrice)}</span>
               </div>
               <hr />
               <div className="summary-row total">
                 <strong>Total:</strong>
-                <strong>${order.totalPrice.toFixed(2)}</strong>
+                <strong>{formatPrice(order.totalPrice)}</strong>
               </div>
             </div>
           </div>

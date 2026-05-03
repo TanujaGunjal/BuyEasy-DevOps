@@ -59,10 +59,10 @@ exports.createOrder = async (req, res, next) => {
       totalPrice,
     });
 
-    // Clear user's cart
+    // Clear user's cart (also reset totals since findOneAndUpdate bypasses hooks)
     await Cart.findOneAndUpdate(
       { user: req.user.id },
-      { items: [] }
+      { items: [], totalItems: 0, totalPrice: 0, updatedAt: new Date() }
     );
 
     res.status(201).json({

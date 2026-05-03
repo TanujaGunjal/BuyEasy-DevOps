@@ -1,8 +1,12 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const crypto = require('crypto');
 const errorHandler = require('./middleware/error');
 const path = require('path');
+
+// Make crypto globally available
+global.crypto = crypto;
 
 // Load env vars
 dotenv.config({ path: path.join(__dirname, '.env') });

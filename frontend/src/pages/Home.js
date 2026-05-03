@@ -52,7 +52,7 @@ const Home = () => {
     <FaTruck className="service-icon" />
     <div>
       <p className="service-title">Free Shipping</p>
-      <span className="service-subtitle">On all orders above ₹499</span>
+      <span className="service-subtitle">On all orders above $499</span>
     </div>
   </div>
 

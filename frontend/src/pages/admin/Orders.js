@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { formatPrice } from '../../utils/priceFormatter';
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -55,7 +56,7 @@ const AdminOrders = () => {
                 <tr key={order._id}>
                   <td>#{order._id.slice(-8)}</td>
                   <td>{order.user?.name}</td>
-                  <td>${order.totalPrice.toFixed(2)}</td>
+                  <td>{formatPrice(order.totalPrice)}</td>
                   <td>
                     <select
                       value={order.orderStatus}
