@@ -1,94 +1,84 @@
 pipeline {
-    agent none   // no global agent (we use different environments per stage)
+    agent any
 
     environment {
         IMAGE_BACKEND  = 'buyeasy-backend'
         IMAGE_FRONTEND = 'buyeasy-frontend'
     }
 
+    tools {
+        nodejs 'NodeJS-18'
+    }
+
     stages {
 
-        // ─────────────────────────────────────────────
-        // Install dependencies using Node container
-        // ─────────────────────────────────────────────
-        stage('Install Dependencies') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
-                }
-            }
+        stage('Checkout') {
             steps {
-                echo '📦 Installing dependencies...'
+                echo '📦 Checking out source code...'
+                checkout scm
+            }
+        }
+
+        stage('Install Backend Dependencies') {
+            steps {
+                echo '📦 Installing backend dependencies...'
                 dir('backend') {
                     sh 'npm install'
                 }
+            }
+        }
+
+        stage('Install Frontend Dependencies') {
+            steps {
+                echo '📦 Installing frontend dependencies...'
                 dir('frontend') {
                     sh 'npm install'
                 }
             }
         }
 
-        // ─────────────────────────────────────────────
-        // Run tests (Jest + Supertest)
-        // ─────────────────────────────────────────────
-        stage('Run Tests') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
-                }
-            }
+        stage('Run Backend Tests') {
             steps {
                 echo '🧪 Running backend tests...'
                 dir('backend') {
-                    sh 'npm install'
                     sh 'npx jest --forceExit --detectOpenHandles'
                 }
             }
         }
 
-        // ─────────────────────────────────────────────
-        // Build Docker images (runs on Jenkins host)
-        // ─────────────────────────────────────────────
         stage('Build Docker Images') {
-            agent any
             steps {
-                echo '🐳 Building backend image...'
-                sh "docker build -t ${IMAGE_BACKEND}:latest ./backend"
+                echo '🐳 Building backend Docker image...'
+                sh "docker build -t ${IMAGE_BACKEND}:latest -f backend/Dockerfile ."
 
-                echo '🐳 Building frontend image...'
+                echo '🐳 Building frontend Docker image...'
                 sh "docker build -t ${IMAGE_FRONTEND}:latest ./frontend"
             }
         }
 
-        // ─────────────────────────────────────────────
-        // Run containers
-        // ─────────────────────────────────────────────
-stage('Run Containers') {
-    agent any
-    steps {
-        echo '🚀 Starting containers...'
-        sh 'docker-compose down --remove-orphans || true'
-        sh 'docker-compose up -d'
-        sh 'docker ps'
-    }
-}
+        stage('Run Containers') {
+            steps {
+                echo '🚀 Starting application containers...'
+                sh 'docker compose down --remove-orphans || true'
+                sh 'docker compose up -d'
+                sh 'sleep 10'
+                sh 'docker ps'
+            }
+        }
     }
 
-    // ─────────────────────────────────────────────
-    // Post actions
-    // ─────────────────────────────────────────────
     post {
         success {
             echo '''
-            ╔══════════════════════════════════════╗
-            ║   ✅ PIPELINE SUCCESSFUL             ║
-            ║   Frontend: http://localhost:3000   ║
-            ║   Backend:  http://localhost:5000   ║
-            ╚══════════════════════════════════════╝
+╔══════════════════════════════════════╗
+║   ✅ PIPELINE SUCCESSFUL             ║
+║   Frontend: http://localhost:3000    ║
+║   Backend:  http://localhost:5000    ║
+╚══════════════════════════════════════╝
             '''
         }
         failure {
-            echo '❌ PIPELINE FAILED — check console output.'
+            echo '❌ Pipeline failed. Check the stage logs above.'
         }
         always {
             echo '🧹 Pipeline finished.'
