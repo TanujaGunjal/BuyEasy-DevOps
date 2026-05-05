@@ -47,15 +47,13 @@ pipeline {
             }
         }
 
-        // ✅ FIXED SONAR STAGE (WITH TOKEN)
+        // ✅ FINAL FIXED SONAR STAGE (ONLY THIS)
         stage('SonarQube Analysis') {
             steps {
                 echo '🔍 Running SonarQube analysis...'
                 dir('backend') {
                     withSonarQubeEnv('SonarQube') {
-                        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                             sh "${tool 'SonarScanner'}/bin/sonar-scanner"
-                        }
+                        sh "${tool 'SonarScanner'}/bin/sonar-scanner"
                     }
                 }
             }
