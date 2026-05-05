@@ -15,6 +15,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo '📦 Checking out source code...'
+                deleteDir()        // 🔥 prevents stale workspace issues
                 checkout scm
             }
         }
@@ -64,11 +65,10 @@ pipeline {
                     sh 'rm -f backend/.env && cp $ENV_FILE backend/.env'
                 }
 
-                // Clean up any leftover containers
                 sh 'docker rm -f buyeasy-backend buyeasy-frontend 2>/dev/null || true'
-
                 sh 'docker-compose -p buyeasy down --remove-orphans || true'
                 sh 'docker-compose -p buyeasy up -d --no-build'
+
                 sh 'sleep 10'
                 sh 'docker ps'
             }
