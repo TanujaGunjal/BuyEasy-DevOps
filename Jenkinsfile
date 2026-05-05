@@ -96,5 +96,4 @@ pipeline {
             echo '🧹 Pipeline finished.'
         }
     }
-}
 ```
