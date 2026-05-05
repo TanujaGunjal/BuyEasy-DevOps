@@ -35,7 +35,7 @@ afterAll(()  => { console.error.mockRestore(); });
 describe('GET / – API Health Check', () => {
   it('should return 200 with welcome message', async () => {
     const res = await request(app).get('/');
-    expect(res.statusCode).toBe(500);
+    expect(res.statusCode).toBe(200);
     expect(res.body.message).toBe('Welcome to BuyEasy API');
   });
 
@@ -71,4 +71,8 @@ describe('GET /api/products – Products Endpoint', () => {
     const res = await request(app).get('/api/products');
     expect(res.statusCode).not.toBe(404);
   });
+});
+
+test("force fail demo", () => {
+  expect(true).toBe(false);
 });
