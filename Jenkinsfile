@@ -41,7 +41,7 @@ pipeline {
             steps {
                 echo '🧪 Running backend tests...'
                 dir('backend') {
-                    sh 'npx jest --forceExit --detectOpenHandles'
+                    sh 'npm test'
                 }
             }
         }
