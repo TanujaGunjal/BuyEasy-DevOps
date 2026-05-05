@@ -62,8 +62,8 @@ pipeline {
                 withCredentials([file(credentialsId: 'buyeasy-backend-env', variable: 'ENV_FILE')]) {
                     sh 'cp $ENV_FILE backend/.env'
                 }
-                sh 'docker-compose down --remove-orphans || true'
-                sh 'docker-compose up -d'
+                sh 'docker-compose -p buyeasy down --remove-orphans || true'
+                sh 'docker-compose -p buyeasy up -d --no-build'
                 sh 'sleep 10'
                 sh 'docker ps'
             }
