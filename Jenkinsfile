@@ -47,13 +47,18 @@ pipeline {
             }
         }
 
-        // ✅ NEW STAGE ADDED HERE
+        // ✅ FIXED SONAR STAGE (WITH TOKEN)
         stage('SonarQube Analysis') {
             steps {
                 echo '🔍 Running SonarQube analysis...'
                 dir('backend') {
                     withSonarQubeEnv('SonarQube') {
-                        sh "${tool 'SonarScanner'}/bin/sonar-scanner"
+                        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                            sh """
+                            ${tool 'SonarScanner'}/bin/sonar-scanner \
+                            -Dsonar.login=$SONAR_TOKEN
+                            """
+                        }
                     }
                 }
             }
