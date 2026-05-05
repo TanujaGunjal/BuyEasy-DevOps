@@ -59,6 +59,9 @@ pipeline {
         stage('Run Containers') {
             steps {
                 echo '🚀 Starting application containers...'
+                withCredentials([file(credentialsId: 'buyeasy-backend-env', variable: 'ENV_FILE')]) {
+                    sh 'cp $ENV_FILE backend/.env'
+                }
                 sh 'docker-compose down --remove-orphans || true'
                 sh 'docker-compose up -d'
                 sh 'sleep 10'
