@@ -1,3 +1,4 @@
+```groovy
 pipeline {
     agent any
 
@@ -15,6 +16,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo '📦 Checking out source code...'
+                deleteDir()            // 🔥 IMPORTANT: clears old workspace
                 checkout scm
             }
         }
@@ -60,15 +62,18 @@ pipeline {
             steps {
                 echo '🚀 Starting application containers...'
 
+                // Inject .env securely
                 withCredentials([file(credentialsId: 'buyeasy-backend-env', variable: 'ENV_FILE')]) {
                     sh 'rm -f backend/.env && cp $ENV_FILE backend/.env'
                 }
 
-                // Clean up any leftover containers
+                // Clean old containers
                 sh 'docker rm -f buyeasy-backend buyeasy-frontend 2>/dev/null || true'
 
+                // Start fresh containers
                 sh 'docker-compose -p buyeasy down --remove-orphans || true'
                 sh 'docker-compose -p buyeasy up -d --no-build'
+
                 sh 'sleep 10'
                 sh 'docker ps'
             }
@@ -93,3 +98,4 @@ pipeline {
         }
     }
 }
+```
