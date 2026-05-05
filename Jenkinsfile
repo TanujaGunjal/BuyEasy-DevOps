@@ -47,6 +47,7 @@ pipeline {
             }
         }
 
+        // ✅ FIXED SONAR STAGE
         stage('SonarQube Analysis') {
             steps {
                 echo '🔍 Running SonarQube analysis...'
@@ -55,7 +56,7 @@ pipeline {
                         sh """
                         ${tool 'SonarScanner'}/bin/sonar-scanner \
                         -Dsonar.projectKey=buyeasy-backend \
-                        -Dsonar.host.url=http://host.docker.internal:9000 \
+                        -Dsonar.host.url=http://192.168.1.35:9000 \
                         -Dsonar.token=$SONAR_TOKEN
                         """
                     }
