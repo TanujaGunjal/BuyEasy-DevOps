@@ -40,7 +40,7 @@ pipeline {
 
         stage('Run Backend Tests') {
             steps {
-                echo '🧪 Running backend tests...'
+                echo '🧪 Running backend tests + collecting coverage...'
                 dir('backend') {
                     sh 'npm test'
                 }
