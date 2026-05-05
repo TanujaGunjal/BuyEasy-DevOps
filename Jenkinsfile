@@ -15,7 +15,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo '📦 Checking out source code...'
-                deleteDir()        // 🔥 prevents stale workspace issues
+                deleteDir()
                 checkout scm
             }
         }
@@ -43,6 +43,18 @@ pipeline {
                 echo '🧪 Running backend tests...'
                 dir('backend') {
                     sh 'npm test'
+                }
+            }
+        }
+
+        // ✅ NEW STAGE ADDED HERE
+        stage('SonarQube Analysis') {
+            steps {
+                echo '🔍 Running SonarQube analysis...'
+                dir('backend') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh "${tool 'SonarScanner'}/bin/sonar-scanner"
+                    }
                 }
             }
         }
