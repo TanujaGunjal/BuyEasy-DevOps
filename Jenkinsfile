@@ -59,8 +59,8 @@ pipeline {
         stage('Run Containers') {
             steps {
                 echo '🚀 Starting application containers...'
-                sh 'docker compose down --remove-orphans || true'
-                sh 'docker compose up -d'
+                sh 'docker-compose down --remove-orphans || true'
+                sh 'docker-compose up -d'
                 sh 'sleep 10'
                 sh 'docker ps'
             }
