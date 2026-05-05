@@ -73,6 +73,3 @@ describe('GET /api/products – Products Endpoint', () => {
   });
 });
 
-test("force fail demo", () => {
-  expect(true).toBe(false);
-});
