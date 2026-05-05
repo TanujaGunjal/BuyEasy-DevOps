@@ -59,9 +59,14 @@ pipeline {
         stage('Run Containers') {
             steps {
                 echo '🚀 Starting application containers...'
+
                 withCredentials([file(credentialsId: 'buyeasy-backend-env', variable: 'ENV_FILE')]) {
-                    sh 'cp $ENV_FILE backend/.env'
+                    sh 'rm -f backend/.env && cp $ENV_FILE backend/.env'
                 }
+
+                // Clean up any leftover containers
+                sh 'docker rm -f buyeasy-backend buyeasy-frontend 2>/dev/null || true'
+
                 sh 'docker-compose -p buyeasy down --remove-orphans || true'
                 sh 'docker-compose -p buyeasy up -d --no-build'
                 sh 'sleep 10'
