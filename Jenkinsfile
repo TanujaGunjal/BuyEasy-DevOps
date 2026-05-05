@@ -47,13 +47,17 @@ pipeline {
             }
         }
 
-        // ✅ FINAL FIXED SONAR STAGE (ONLY THIS)
         stage('SonarQube Analysis') {
             steps {
                 echo '🔍 Running SonarQube analysis...'
                 dir('backend') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh "${tool 'SonarScanner'}/bin/sonar-scanner"
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        sh """
+                        ${tool 'SonarScanner'}/bin/sonar-scanner \
+                        -Dsonar.projectKey=buyeasy-backend \
+                        -Dsonar.host.url=http://host.docker.internal:9000 \
+                        -Dsonar.token=$SONAR_TOKEN
+                        """
                     }
                 }
             }
