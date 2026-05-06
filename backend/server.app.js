@@ -7,8 +7,15 @@ const path = require('path');
 const client = require('prom-client');
 
 // ── Prometheus metrics setup ─────────────────────────────────────────────
-const register = new client.Registry();
-client.collectDefaultMetrics({ register }); // CPU, memory, event loop, GC etc.
+client.collectDefaultMetrics(); // CPU, memory, event loop, GC (uses global registry)
+
+// HTTP request duration histogram (app-level metric)
+const httpRequestDuration = new client.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'status'],
+  buckets: [0.01, 0.05, 0.1, 0.3, 0.5, 1, 2, 5],
+});
 
 // Make crypto globally available
 global.crypto = crypto;
@@ -30,6 +37,18 @@ app.use(cors({
   ],
   credentials: true
 }));
+
+// ── HTTP duration tracking middleware (must be before routes) ───────────
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = (Date.now() - start) / 1000;
+    httpRequestDuration
+      .labels(req.method, req.route?.path || req.url, res.statusCode)
+      .observe(duration);
+  });
+  next();
+});
 
 // Serve static files (uploads)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -69,10 +88,10 @@ app.get('/', (req, res) => {
   });
 });
 
-// ── Prometheus /metrics endpoint ───────────────────────────────────────
+// ── Prometheus /metrics endpoint ────────────────────────────────────────
 app.get('/metrics', async (req, res) => {
-  res.set('Content-Type', register.contentType);
-  res.end(await register.metrics());
+  res.set('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
 });
 
 // Error handler (must be last)
