@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 15s       # Pull metrics every 15 seconds
+  evaluation_interval: 15s
+
+scrape_configs:
+
+  # ── Prometheus self-monitoring ────────────────────────────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ── System metrics via node-exporter ────────────────────────────────────
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # ── BuyEasy backend /metrics endpoint ───────────────────────────────────
+  - job_name: 'buyeasy-backend'
+    static_configs:
+      - targets: ['backend:5000']
+    metrics_path: '/metrics'

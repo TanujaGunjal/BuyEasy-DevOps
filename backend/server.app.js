@@ -4,6 +4,11 @@ const cors = require('cors');
 const crypto = require('crypto');
 const errorHandler = require('./middleware/error');
 const path = require('path');
+const client = require('prom-client');
+
+// ── Prometheus metrics setup ─────────────────────────────────────────────
+const register = new client.Registry();
+client.collectDefaultMetrics({ register }); // CPU, memory, event loop, GC etc.
 
 // Make crypto globally available
 global.crypto = crypto;
@@ -62,6 +67,12 @@ app.get('/', (req, res) => {
       payments: '/api/payments',
     },
   });
+});
+
+// ── Prometheus /metrics endpoint ───────────────────────────────────────
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
 });
 
 // Error handler (must be last)
