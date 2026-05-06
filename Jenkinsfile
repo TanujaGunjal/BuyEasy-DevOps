@@ -83,33 +83,16 @@ pipeline {
             steps {
                 echo '🚀 Starting application containers...'
 
-                // ── Tear down any running stack first ──────────────────────
+                // ── Tear down any running stack cleanly ────────────────────
                 sh 'docker rm -f buyeasy-backend buyeasy-frontend buyeasy-prometheus buyeasy-grafana buyeasy-node-exporter 2>/dev/null || true'
-                sh 'docker-compose -p buyeasy down --remove-orphans --volumes 2>/dev/null || true'
-
-                // ── Fix: remove any stale directory Docker may have created ─
-                // When a bind-mount source file doesn't exist, Docker/compose
-                // sometimes creates a directory placeholder. That directory
-                // then blocks future file mounts and causes the OCI error:
-                //   "not a directory: Are you trying to mount a directory onto a file?"
-                sh '''
-                    if [ -d prometheus.yml ]; then
-                        echo "⚠️  prometheus.yml is a directory (stale Docker artifact) – removing it"
-                        rm -rf prometheus.yml
-                    fi
-                    if [ ! -f prometheus.yml ]; then
-                        echo "❌ prometheus.yml file is missing from workspace!"
-                        exit 1
-                    fi
-                    echo "✅ prometheus.yml confirmed as a regular file ($(wc -c < prometheus.yml) bytes)"
-                '''
+                sh 'docker-compose -p buyeasy down --remove-orphans 2>/dev/null || true'
 
                 // ── Inject backend env file ────────────────────────────────
                 withCredentials([file(credentialsId: 'buyeasy-backend-env', variable: 'ENV_FILE')]) {
                     sh 'rm -f backend/.env && cp $ENV_FILE backend/.env'
                 }
 
-                // ── Start all containers ───────────────────────────────────
+                // ── Start all active containers (Prometheus is disabled) ───
                 sh 'docker-compose -p buyeasy up -d --no-build'
 
                 sh 'sleep 10'
