@@ -12,10 +12,15 @@ pipeline {
 
     stages {
 
+        stage('Clean') {
+            steps {
+                deleteDir()
+            }
+        }
+
         stage('Checkout') {
             steps {
                 echo '📦 Checking out source code...'
-                deleteDir()
                 checkout scm
             }
         }
