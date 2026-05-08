@@ -18,25 +18,7 @@ BuyEasy is a containerized MERN stack e-commerce platform designed to demonstrat
 
 # 🏗️ System Architecture
 
-Developer Pushes Code to GitHub
-            │
-            ▼
-        Jenkins Pipeline
-            │
- ┌──────────┴──────────┐
- │                     │
- ▼                     ▼
-SonarQube        Docker Build & Deploy
-(Code Quality)          │
-                        ▼
-             ┌──────────────────────┐
-             │ Docker Compose Stack │
-             └──────────────────────┘
-                        │
- ┌──────────────┬──────────────┬──────────────┐
- ▼              ▼              ▼              ▼
-Frontend     Backend      Prometheus      Grafana
-(React)     (Node.js)     Monitoring     Dashboards
+![System Architecture](docs/screenshots/arch.png)
 
 
 # 🛠️ Tech Stack
@@ -188,7 +170,7 @@ Grafana visualizes:
 
 ## SonarQube Dashboard
 
-![SonarQube](docs/screenshots/sonarqube.png)
+![SonarQube](docs/screenshots/sonar.png)
 
 ## Application UI
 
