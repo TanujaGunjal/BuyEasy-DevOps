@@ -49,29 +49,25 @@ services:
       - buyeasy-network
 
   # ── Prometheus (metrics collector) ───────────────────────────────────────
-  # 🔴 TEMPORARILY DISABLED — re-enable after resolving bind-mount issue
-  # To restore: uncomment this entire block and re-add 'depends_on: prometheus'
-  # to the grafana service below.
-  #
-  # prometheus:
-  #   image: prom/prometheus:latest
-  #   container_name: buyeasy-prometheus
-  #   restart: unless-stopped
-  #   ports:
-  #     - "9090:9090"
-  #   volumes:
-  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-  #     - prometheus_data:/prometheus
-  #   command:
-  #     - '--config.file=/etc/prometheus/prometheus.yml'
-  #     - '--storage.tsdb.path=/prometheus'
-  #     - '--web.console.libraries=/etc/prometheus/console_libraries'
-  #     - '--web.console.templates=/etc/prometheus/consoles'
-  #   depends_on:
-  #     - backend
-  #     - node-exporter
-  #   networks:
-  #     - buyeasy-network
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: buyeasy-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    depends_on:
+      - backend
+      - node-exporter
+    networks:
+      - buyeasy-network
 
   # ── Grafana (metrics dashboard) ───────────────────────────────────────────
   grafana:
@@ -79,15 +75,15 @@ services:
     container_name: buyeasy-grafana
     restart: unless-stopped
     ports:
-      - "3001:3000"           # 3001 on host to avoid conflict with frontend
+      - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
-    # depends_on:             # 🔴 Removed: prometheus is disabled
-    #   - prometheus
+    depends_on:
+      - prometheus
     networks:
       - buyeasy-network
 
@@ -99,5 +95,5 @@ networks:
 # ── Named Volumes ─────────────────────────────────────────────────────────
 volumes:
   uploads_data:
-  prometheus_data:       # kept so restore is seamless
+  prometheus_data:
   grafana_data:

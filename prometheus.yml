@@ -12,10 +12,10 @@ scrape_configs:
   # ── System metrics via node-exporter ────────────────────────────────────
   - job_name: 'node-exporter'
     static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ['host.docker.internal:9100']
 
   # ── BuyEasy backend /metrics endpoint ───────────────────────────────────
   - job_name: 'buyeasy-backend'
     static_configs:
-      - targets: ['backend:5000']
+      - targets: ['host.docker.internal:5000']
     metrics_path: '/metrics'
