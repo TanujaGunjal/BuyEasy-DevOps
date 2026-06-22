@@ -14,8 +14,13 @@ scrape_configs:
     static_configs:
       - targets: ['host.docker.internal:9100']
 
-  # ── BuyEasy backend /metrics endpoint ───────────────────────────────────
+  # ── BuyEasy backend /metrics endpoint ────────────────────────────────────
   - job_name: 'buyeasy-backend'
     static_configs:
-      - targets: ['host.docker.internal:5000']
+      - targets: ['backend:5000']
     metrics_path: '/metrics'
+
+  # ── RabbitMQ metrics (prometheus plugin built into management image) ────
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']  # RabbitMQ prometheus plugin port

@@ -1,6 +1,8 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Cart = require('../models/Cart');
+const { getChannel } = require('../config/rabbitmq');
+const { ordersCreatedTotal, consumerLag } = require('../config/metrics');
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -24,10 +26,10 @@ exports.createOrder = async (req, res, next) => {
       });
     }
 
-    // Verify stock and update product quantities
+    // ── Stock verification only (no mutation here — inventory consumer handles it) ──
     for (let item of orderItems) {
       const product = await Product.findById(item.product);
-      
+
       if (!product) {
         return res.status(404).json({
           success: false,
@@ -41,13 +43,9 @@ exports.createOrder = async (req, res, next) => {
           message: `Insufficient stock for ${item.name}`,
         });
       }
-
-      // Update stock and sold count
-      product.stock -= item.quantity;
-      product.soldCount += item.quantity;
-      await product.save();
     }
 
+    // ── Persist order ──────────────────────────────────────────────────────
     const order = await Order.create({
       orderItems,
       user: req.user.id,
@@ -59,12 +57,39 @@ exports.createOrder = async (req, res, next) => {
       totalPrice,
     });
 
-    // Clear user's cart (also reset totals since findOneAndUpdate bypasses hooks)
+    // ── Clear cart ─────────────────────────────────────────────────────────
     await Cart.findOneAndUpdate(
       { user: req.user.id },
       { items: [], totalItems: 0, totalPrice: 0, updatedAt: new Date() }
     );
 
+    // ── Publish to RabbitMQ — stock deduction & email now happen async ─────
+    const channel = getChannel();
+    if (channel) {
+      const payload = {
+        orderId: order._id,
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userName: req.user.name,
+        orderItems: order.orderItems,
+        totalPrice: order.totalPrice,
+        shippingAddress: order.shippingAddress,
+        createdAt: order.createdAt,
+      };
+
+      channel.sendToQueue(
+        'order.created',
+        Buffer.from(JSON.stringify(payload)),
+        { persistent: true } // survive RabbitMQ restart
+      );
+
+      ordersCreatedTotal.inc();  // Prometheus: total orders created
+      consumerLag.inc();         // lag gauge: decremented by inventory consumer
+    } else {
+      console.warn('⚠️  RabbitMQ channel unavailable — order saved but not published');
+    }
+
+    // Returns immediately — does not wait for email or stock update
     res.status(201).json({
       success: true,
       data: order,

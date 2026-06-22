@@ -13,10 +13,15 @@ services:
     environment:
       - NODE_ENV=production
       - CLIENT_URL=http://localhost:3000
+      - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
     volumes:
       - uploads_data:/app/uploads
     networks:
       - buyeasy-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:5000/"]
       interval: 30s
@@ -35,6 +40,37 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    networks:
+      - buyeasy-network
+
+  # ── RabbitMQ (message broker for async order processing) ────────────────
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: buyeasy-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"     # AMQP protocol
+      - "15672:15672"   # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - buyeasy-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ── Redis (cart caching) ─────────────────────────────────────────────────
+  redis:
+    image: redis:alpine
+    container_name: buyeasy-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
     networks:
       - buyeasy-network
 
@@ -97,3 +133,4 @@ volumes:
   uploads_data:
   prometheus_data:
   grafana_data:
+  rabbitmq_data:

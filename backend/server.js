@@ -13,12 +13,22 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 // Connect to MongoDB (only when actually starting the server, not during tests)
 const connectDB = require('./config/db');
 const { startPriceAlertCron } = require('./services/priceAlertCron');
+const { connectRabbitMQ } = require('./config/rabbitmq');
+const { startInventoryConsumer } = require('./consumers/inventoryConsumer');
+const { startNotificationConsumer } = require('./consumers/notificationConsumer');
 
 const app  = require('./server.app');
 const PORT = process.env.PORT || 5000;
 
-connectDB().then(() => {
-  // Start the price alert cron job after DB connection
+connectDB().then(async () => {
+  // ── RabbitMQ (must connect before starting consumers) ───────────────────
+  await connectRabbitMQ();
+
+  // ── Async consumers ─────────────────────────────────────────────────────
+  startInventoryConsumer();
+  startNotificationConsumer();
+
+  // ── Price alert cron ────────────────────────────────────────────────────
   startPriceAlertCron();
 
   const server = app.listen(PORT, () => {
@@ -43,8 +53,3 @@ connectDB().then(() => {
   process.exit(1);
 });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.log(`Error: ${err.message}`);
-  server.close(() => process.exit(1));
-});

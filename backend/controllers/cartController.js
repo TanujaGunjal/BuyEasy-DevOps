@@ -1,16 +1,62 @@
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
+const Redis = require('ioredis');
+
+// ── Redis client (cache-aside for cart reads) ────────────────────────────
+const redis = new Redis(process.env.REDIS_URL || 'redis://redis:6379', {
+  lazyConnect: true,       // don't fail at import time if Redis is down
+  enableOfflineQueue: false,
+});
+
+redis.on('connect', () => console.log('✅ Redis connected'));
+redis.on('error',   (err) => console.error('⚠️  Redis error:', err.message));
+
+/**
+ * Helper: invalidate the cart cache for a user.
+ * Called after every write operation so reads never serve stale data.
+ */
+const invalidateCartCache = async (userId) => {
+  try {
+    await redis.del(`cart:${userId}`);
+  } catch (err) {
+    console.error('Redis DEL failed (non-fatal):', err.message);
+  }
+};
 
 // @desc    Get user cart
 // @route   GET /api/cart
 // @access  Private
 exports.getCart = async (req, res, next) => {
   try {
+    const cacheKey = `cart:${req.user.id}`;
+
+    // ── Cache-aside: check Redis first ─────────────────────────────────────
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return res.status(200).json({
+          success: true,
+          data: JSON.parse(cached),
+          source: 'cache',
+        });
+      }
+    } catch (redisErr) {
+      console.error('Redis GET failed (falling back to DB):', redisErr.message);
+    }
+
+    // ── Cache miss: fetch from MongoDB ──────────────────────────────────
     let cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
 
     if (!cart) {
       cart = new Cart({ user: req.user.id, items: [] });
       await cart.save();
+    }
+
+    // ── Populate and cache with 1-hour TTL ────────────────────────────────
+    try {
+      await redis.setex(cacheKey, 3600, JSON.stringify(cart)); // 1 hour TTL
+    } catch (redisErr) {
+      console.error('Redis SETEX failed (non-fatal):', redisErr.message);
     }
 
     res.status(200).json({
@@ -73,6 +119,9 @@ exports.addToCart = async (req, res, next) => {
     await cart.save();
     cart = await cart.populate('items.product');
 
+    // Invalidate cache so next getCart fetches fresh data
+    await invalidateCartCache(req.user.id);
+
     res.status(200).json({
       success: true,
       data: cart,
@@ -120,6 +169,9 @@ exports.updateCartItem = async (req, res, next) => {
     await cart.save();
     cart = await cart.populate('items.product');
 
+    // Invalidate cache
+    await invalidateCartCache(req.user.id);
+
     res.status(200).json({
       success: true,
       data: cart,
@@ -150,6 +202,9 @@ exports.removeFromCart = async (req, res, next) => {
     await cart.save();
     cart = await cart.populate('items.product');
 
+    // Invalidate cache
+    await invalidateCartCache(req.user.id);
+
     res.status(200).json({
       success: true,
       data: cart,
@@ -175,6 +230,9 @@ exports.clearCart = async (req, res, next) => {
 
     cart.items = [];
     await cart.save();
+
+    // Invalidate cache
+    await invalidateCartCache(req.user.id);
 
     res.status(200).json({
       success: true,
