@@ -49,17 +49,17 @@ BuyEasy is a full-stack MERN e-commerce platform built with async order processi
 |                           |  Exchange: order.dlx  (dead-letter)    ||
 |                           +----------+----------------+------------+|
 |                                      |                |             |
-|                    +-----------------v--+  +----------v-----------+|
-|                    | inventoryConsumer  |  | notificationConsumer ||
-|                    | prefetch(1)        |  | prefetch(1)          ||
-|                    | $inc stock+sold    |  | Gmail SMTP           ||
-|                    | ack / nack→DLQ     |  | ack / nack→DLQ       ||
-|                    +--------------------+  +----------------------+|
+|                    +-----------------v--+  +----------v-----------+ |
+|                    | inventoryConsumer  |  | notificationConsumer | |
+|                    | prefetch(1)        |  | prefetch(1)          | |
+|                    | $inc stock+sold    |  | Gmail SMTP           | |
+|                    | ack / nack→DLQ     |  | ack / nack→DLQ       | |
+|                    +--------------------+  +----------------------+ |
 |                                                                     |
-|  +-----------+  +----------+  +--------+  +----------+             |
-|  | Prometheus|  |  Grafana |  |  Redis |  |Node Exporter|         |
-|  |   :9090   |  |  :3001   |  | :6379  |  |  :9100   |            |
-|  +-----------+  +----------+  +--------+  +----------+             |
+|  +-----------+  +----------+  +--------+  +----------+              |
+|  | Prometheus|  |  Grafana |  |  Redis |  |Node Exporter|           |
+|  |   :9090   |  |  :3001   |  | :6379  |  |  :9100   |              |
+|  +-----------+  +----------+  +--------+  +----------+              |
 +---------------------------------------------------------------------+
 
 Jenkins: Clean → Checkout → npm install → Jest/Supertest → SonarQube → Docker build → docker compose up
